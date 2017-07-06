@@ -9,44 +9,95 @@ color OFF = color(170,170,170);
 
 // run once
 void setup() {
-  size(1500,500);
+  size(1500,1000);
   // setup "processing" window to scrape our pixels from
+  fill(OFF);
+  noStroke();
+  rect(0,0,501,501);
+  // setup LED display - this will be our Pixel Pusher array simulator
+  buildCanopy(1000,500);
 
-  noFill();
-  rect(0,0,620,300);
-  fill(0);
-  rect(620,0,2,500); // stage divider
-  rect(0,300,620,200);
-  // setup LED display - this will be out Pixel Pusher array simulator
-  int x = 503; // topleft corner coordinates of the simulator window
-  int y = 0; 
+}
+
+void test() {
   
-  
-  identifyPanels(x + 130, y + 50);
-  identifyPanels(x + 130 + (62 * ledSpacer), y + 50);
-  buildCanopy(x + 130, y + 50);
-  
-  // now setup your PixelPushers
 }
 
 // run always
 void draw() {
-  noFill();
-  stroke(255,0,0);
-  ellipse(50,50,30,30);
-  
+  fill(color(255,255,0));
+  noStroke();
+  rect(0,0,100,100);
+  fill(color(11,178,220));
+  ellipse(300,300,100,100);
+  fill(color(0,118,111));
+  beginShape();
+  vertex(300,150);
+  vertex(400,75);
+  vertex(320,100);
+  endShape(CLOSE);
+  // this maps directly to strips/rads
+  // we'll need a function that converts strips/rads to pixel pusher arrays (e.g. 8 of 6 of 75);
   scrapePixels();
+ 
+}
+
+void setColor(int strip, int led, color c) {
+  pushMatrix();
+  translate(1000,500);
+  rotate(radians(strip * 3.75));
+  fill(c);
+  ellipse(0,96 + (led * 5),3,3);
+  popMatrix();
 }
 
 void scrapePixels() {
-  
+  for (int y = 0; y < 500; y++) {
+    for (int x = 0; x < 500; x++) {
+      color c = get(x,y);
+      if (c == OFF) { continue; }
+      PolarCoord pc = new PolarCoord(x,y);
+      int strip = floor(pc.theta * 180 / PI / 3.75);
+      int r = floor(pc.radius * 75 / 500);
+      setColor(strip, r, c);
+    }
+  }
 }
 
 // ======================
+class PolarCoord {
+  float theta;
+  float radius;
+  
+  public PolarCoord(int x, int y) {
+    int x2 = mapCartesianX(x);
+    int y2 = mapCartesianY(y);
+    this.theta = atan(y2 / (x2 + 0.01)) + PI;
+    this.radius = sqrt((x2 * x2) + (y2 * y2));
+  }
+  
+  public PolarCoord(float theta, float radius) {
+    this.theta = theta;
+    this.radius = radius;
+  }
+  
+  public String toString() {
+    return this.theta + "," + this.radius;
+  }
+  
+  private int mapCartesianX(int x) {
+    return x - 249;
+  }
+  
+  private int mapCartesianY(int y) {
+    return (y - 249) * -1;
+  }
+  
+}
 
 class PixelPusher {
   private List<Strip> strips;
-  public void PixelPusher(List<Strip> strips) {
+  public PixelPusher(List<Strip> strips) {
     this.strips = strips;
   }
   
@@ -73,93 +124,24 @@ class Strip {
 // ======================
 
 void buildCanopy(int x, int y) {
-  int posx = x;
-  int posy = y;
-  int lineCount = 0;
-  int rowCount = 0;
-  boolean stop = false;
-   noStroke();
-   fill(OFF);
-   while (!stop) {
-    ellipse(posx, posy, ledSize, ledSize);
-    posx += ledSpacer;
-    lineCount++;
-    if (lineCount >= columns) {
-      lineCount = 0;
-      posy += ledSpacer;
-      posx += (ledSpacer * -1 * columns);// - (ledSpacer / 2); // this additional shifts the lights in the original original parallelogram pattern
-      rowCount++;
-    }
-    if (rowCount >= rows) {
-      stop = true;
-    }
-  }
-}
-
-void identifyPanels(float x, float y) {
-  float startX = x;
-  float startY = y;
-  boolean stop = false;
+  int totalStrips = 96;
+  int totalLEDs = 75;
+  int strips = 0;
+  translate(x, y);
   noFill();
-  int panels = 0;
-  int count = 29;
-  int degrees = 90;
-  int rotNum = 0;
-
-    beginShape();
-    vertex(startX, startY);
-    vertex(startX, startY + (count * ledSpacer));
-    vertex(startX + count * ledSpacer, startY + (count * ledSpacer));
-    endShape(CLOSE);
-    
-    startX = startX + ledSpacer;
-    beginShape();
-    vertex(startX, startY);
-    vertex(startX + count * (ledSpacer), startY);
-    vertex(startX + count * (ledSpacer), startY + (count * ledSpacer));
-    endShape(CLOSE);
-    
-    startX = startX + ledSpacer + (count * ledSpacer);
-    beginShape();
-    vertex(startX, startY);
-    vertex(startX + count * ledSpacer, startY);
-    vertex(startX, startY + count * ledSpacer);
-    endShape(CLOSE);
-    
-    startX = startX + ledSpacer + (count * ledSpacer);
-    beginShape();
-    vertex(startX, startY);
-    vertex(startX, startY + count * ledSpacer);
-    vertex(startX - count * ledSpacer, startY + count * ledSpacer);
-    endShape(CLOSE);
-    
-    startX = x;
-    startY = startY + ledSpacer + (count * ledSpacer);
-    beginShape();
-    vertex(startX, startY);
-    vertex(startX + count * ledSpacer, startY);
-    vertex(startX, startY + count * ledSpacer);
-    endShape(CLOSE);
-    
-    startX = startX + ledSpacer + (count * ledSpacer);
-    beginShape();
-    vertex(startX, startY);
-    vertex(startX, startY + count * ledSpacer);
-    vertex(startX - count * ledSpacer, startY + count * ledSpacer);
-    endShape(CLOSE);
-    
-    startX = startX + ledSpacer;
-    beginShape();
-    vertex(startX, startY);
-    vertex(startX + count * ledSpacer, startY + count * ledSpacer);
-    vertex(startX, startY + count * ledSpacer);
-    endShape(CLOSE);
-    
-    startX = startX + ledSpacer;
-    beginShape();
-    vertex(startX, startY);
-    vertex(startX + count * ledSpacer, startY);
-    vertex(startX + count * ledSpacer, startY + count * ledSpacer);    
-    endShape(CLOSE);
-    
+  strokeWeight(1);
+  stroke(150,150,150);
+ 
+  while (strips < totalStrips) {
+    int stripLeds = 0;
+    while (stripLeds < totalLEDs) {
+      ellipse(0, totalStrips + (5 * stripLeds), 3,3);
+      stripLeds++;
+    }
+    strips++;
+    rotate(radians((float)360/totalStrips));
+  }
+  fill(color(255,0,0));
+  ellipse(0, (totalStrips - 5), 3, 3);
+  translate(-1 * x,-1 * y);
 }
